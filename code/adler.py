@@ -2,6 +2,16 @@ import unittest
 import os
 import zlib
 
+'''
+This code is a proof-of-concept for recovering the hashed prefix of a string
+given its adler32 hash and suffix, i.e. given adler32(x + y) and y,
+we can recover adler32(x).
+
+It also shows how to produce a new adler32 hash with a different suffix
+(assuming the original suffix is known), i.e. given adler32(x + y) and y,
+we can compute adler32(x + new_y).
+'''
+
 def A(x):
     return (1 + sum(x)) % 65521
 
