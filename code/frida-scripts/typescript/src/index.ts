@@ -140,43 +140,47 @@ function incrementNonce(nonce: ArrayBuffer) {
 // FUN_002298c8_Crypt(cipher_ctx *ctx,ulong nonce,ulong nonce_len,long input,ulong inputlen,
 //                    ulong input_str,ulong input_str_len,astruct_9 *output)
 function cryptOnEnter(this: InvocationContext, args: InvocationArguments) {
-    this.encryptOrDecrypt = args[0].add(0x20).readU8() === 0 ? 'DECRYPT' : 'ENCRYPT';
+    const encrypt = args[0].add(0x20).readU8() !== 0;
+    this.encryptOrDecrypt = encrypt ? 'ENCRYPT' : 'DECRYPT';
     const noncePtr = args[1];
     const nonceLen = args[2].toUInt32();
     const nonce = args[1].readByteArray(nonceLen)!;
     const keyPtr = args[0].add(0x50).readPointer();
     const keyLen = args[0].add(0x10).readU32();
     const key = keyPtr.readByteArray(keyLen)!;
-    const hkdfResult = SECRET_STORE.findMatch(key);
-    send(`[+] Crypt (mode: ${this.encryptOrDecrypt})
-nonce:
-${hexdump(noncePtr, { length: nonceLen })}
+    // const hkdfResult = SECRET_STORE.findMatch(key);
+    const firstInputLength = args[4].toUInt32();
+    const firstInput = args[3].readByteArray(firstInputLength)!;
 
-key (${hkdfResult === null ? 'UNKNOWN' : hkdfResult.name()}):
-${hexdump(keyPtr, { length: keyLen })}
-
-source of key:
-${hkdfResult === null ? 'UNKNOWN' : hkdfResult }
-
-input1:
-${hexdump(args[3], { length: args[4].toUInt32() })}
-
-input2:
-${hexdump(args[5], { length: args[6].toUInt32() })}
-
-stack trace:
-${getStackTrace(this)}
-`);
+    this.cryptKey = {
+      layer: "OUTER",
+      encrypt: encrypt,
+      nonce: hex(nonce),
+      key: hex(key),
+      metadata: hex(firstInput),
+    };
+    // If we're decrypting, the input is the ciphertext.
+    if (!this.cryptKey.encrypt) {
+      const secondInputLength = args[6].toUInt32();
+      const last8Bytes = args[5].add(secondInputLength - 8).readByteArray(8)!;
+      this.cryptKey["tail"] = hex(last8Bytes);
+      send(JSON.stringify(this.cryptKey));
+    }
     this.output = args[7];
 }
 
 function cryptOnLeave(this: InvocationContext, retval: InvocationReturnValue) {
-    const outputPtr: NativePointer = this.output;
-    const plaintextPtr = outputPtr.add(0x8).readPointer();
-    const plaintextLen = outputPtr.add(0x10).readU32();
-    send(`[+] Crypt output (${this.encryptOrDecrypt + 'ED'}):
-${hexdump(plaintextPtr, { length: plaintextLen })}`);
+  const outputPtr: NativePointer = this.output;
+  if (this.cryptKey.encrypt) {
+    const ciphertextPtr = outputPtr.add(0x8).readPointer();
+    const ciphertextLen = outputPtr.add(0x10).readU32();
+    const last8Bytes = ciphertextPtr.add(ciphertextLen - 8).readByteArray(8)!;
+    this.cryptKey["tail"] = hex(last8Bytes);
+    send(JSON.stringify(this.cryptKey));
+  }
 }
+
+
 
 interface TargetFunc {
     addr: GhidraAddr;
@@ -360,29 +364,52 @@ ${hexdump(this.arg)}`)
 
 const TARGET_FUNCS: TargetFunc[] = [
     target(0x2298c8, "Crypt", 8, cryptOnEnter, cryptOnLeave),
-    //target(0x219b28, "MMTLS_SendHeartbeat", inspectSendHeartbeat),
-    //target(0x22c324, "ClientChannel_WriteMsgToSendBuffer", inspectWriteMsgToSendBuffer),
-    //target(0x2198c0, "ClientChannel_Send", inspectSend),
-    //target(0x245e38, "MMTLSRecordReader_DecryptRecord", decryptRecordOnEnter),
-    target(0x3e5814, "XLogger_IsEnabledFor", undefined, noop, overrideReturnValue(1)),
-    target(0x3e5870, "XLogger_Write", undefined, inspectXloggerWrite),
-    target(0x229258, "XLogger_CheckLogLevel", undefined, noop, overrideReturnValue(0)),
-    target(0x225830, "ClientCredentialStorage_SavePsk", 2),
-    target(0x225830, "ClientCredentialStorage_LoadRefreshPskFromFile", 1),
-    target(0x23d89c, "ComputeResumptionSecret", 3, computeResumptionSecretOnEnter, computeResumptionSecretOnLeave),
-    target(0x23bd2c, "ComputeMasterSecret", 1),
-    target(0x2416b4, "HkdfExtract", 6),
-    target(0x241938, "HkdfExpand", 7, hkdfExpandOnEnter, hkdfExpandOnLeave),
-    target(0x242628, "HkdfDeriveKey", 9),
-    target(0x23c9d8, "Handshake_ComputeStageConnKey", 4),
-    //target(0x22c4e0, "MMTLSChannel_ComputeStageConnCipherState", 5),
-    //target(0x247998, "SecretMysteryFn", 1, secretMysteryFnOnEnter, secretMysteryFnOnExit),
-    target(0x242aec, "CryptoUtil_ECDH", 7, ecdhOnEnter, ecdhOnLeave),
-    target(0x2b383c, "OtherCryptoUtil_ECDH", 7), // seemingly not called?
-    target(0x226a44, "GetEcdhStaticKey", 1),
-    target(0x3c0a68, "Protobuf_CodedStream_Read?", 1),
-    target(0x3c1de8, "Protobuf_MessageLite_Parse?", 3),
-    target(0x3c2494, "ProtobufCheckVersion?", 3),
+    ////target(0x219b28, "MMTLS_SendHeartbeat", inspectSendHeartbeat),
+    ////target(0x22c324, "ClientChannel_WriteMsgToSendBuffer", inspectWriteMsgToSendBuffer),
+    ////target(0x2198c0, "ClientChannel_Send", inspectSend),
+    ////target(0x245e38, "MMTLSRecordReader_DecryptRecord", decryptRecordOnEnter),
+    //target(0x3e5814, "XLogger_IsEnabledFor", undefined, noop, overrideReturnValue(1)),
+    //target(0x3e5870, "XLogger_Write", undefined, inspectXloggerWrite),
+    //target(0x229258, "XLogger_CheckLogLevel", undefined, noop, overrideReturnValue(0)),
+    ////target(0x225830, "ClientCredentialStorage_SavePsk", 2),
+
+    //target(0x225830, "ClientCredentialStorage_SavePsk", 2),
+    //// Handshake stages
+    //target(0x21fa68, "🤝CreateClientHello", 0),
+    //target(0x21c4f0, "🤝HandshakeLoop_ClientHello", 0),
+    //target(0x21c7e0, "🤝HandshakeLoop_SendEncryptedExtensions", 0),
+    //target(0x21ca1c, "🤝HandshakeLoop_DoSendEarlyAppData", 0),
+    //target(0x21cca0, "🤝HandshakeLoop_DoReceiveServerHello", 0),
+    //target(0x21cfc8, "🤝HandshakeLoop_DoReceiveCertificateVerify", 0),
+    //target(0x21e1cc, "🤝HandshakeLoop_DoReceiveNewSessionTicket", 0),
+    //target(0x21e3d0, "🤝HandshakeLoop_DoReceiveServerFinished", 0),
+    ////target(0x23e064, "🤝HandshakeLoop_ProcessReceivedEarlyAppData", 0),
+    //target(0x21e698, "🤝HandshakeLoop_SendClientFinished", 0),
+    ////FUN_002d5e00__OnSend (longlink)
+    ////FUN_002baf70_Send
+    //target(0x21e698, "🐍LL_Send", 0),
+    //target(0x219dfc, "🐍LL_Receive", 0),
+
+
+    //target(0x225a7c, "ClientCredentialStorage_SaveRefreshPskToFile", 1),
+    //target(0x226fcc, "ClientCredentialStorage_LoadRefreshPskFromFile", 1),
+    ////target(0x23d89c, "ComputeResumptionSecret", 3, computeResumptionSecretOnEnter, computeResumptionSecretOnLeave),
+    //target(0x23bd2c, "ComputeMasterSecret", 1),
+    //target(0x2416b4, "HkdfExtract", 6),
+    //target(0x241938, "HkdfExpand", 7, hkdfExpandOnEnter, hkdfExpandOnLeave),
+    //target(0x242628, "HkdfDeriveKey", 9),
+    //target(0x23c9d8, "Handshake_ComputeStageConnKey", 4),
+    ////target(0x22c4e0, "MMTLSChannel_ComputeStageConnCipherState", 5),
+    ////target(0x247998, "SecretMysteryFn", 1, secretMysteryFnOnEnter, secretMysteryFnOnExit),
+    //target(0x242aec, "CryptoUtil_ECDH", 7, ecdhOnEnter, ecdhOnLeave),
+    //target(0x2b383c, "OtherCryptoUtil_ECDH", 7), // seemingly not called?
+    //target(0x226a44, "GetEcdhStaticKey", 1),
+    //target(0x3c0a68, "Protobuf_CodedStream_Read?", 1),
+    //target(0x3c1de8, "Protobuf_MessageLite_Parse?", 3),
+    //target(0x3c2494, "ProtobufCheckVersion?", 3),
+
+    // FUN_002adad4_Encrypt ax_ecdh_client.cc
+    // FUN_002b7074_Encrypt hybrid_ecdh_client.cc
 ];
 
 function hookFuncs() {
