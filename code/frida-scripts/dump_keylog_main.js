@@ -105,12 +105,16 @@ function AesGcmDecryptEnter(args) {
 // https://dldir1.qq.com/weixin/android/weixin8023android2160_arm64_1.apk
 var target_funcs = {
   "libMMProtocalJni.so": [
-     {addr: 0x0013d108, name: "AesCbcEncrypt", onEnterFn: AesCbcEncryptEnter, onLeaveFn: AesCbcEncryptLeave},
-     {addr: 0x0013d294, name: "AesCbcDecrypt", onEnterFn: AesCbcDecryptEnter},
+     //{addr: 0x0013d108, name: "AesCbcEncrypt", onEnterFn: AesCbcEncryptEnter, onLeaveFn: AesCbcEncryptLeave},
+     //{addr: 0x0013d294, name: "AesCbcDecrypt", onEnterFn: AesCbcDecryptEnter},
+     {addr: 0x0013d6b0, name: "AesCbcEncrypt", onEnterFn: AesCbcEncryptEnter, onLeaveFn: AesCbcEncryptLeave},
+     {addr: 0x0013d83c, name: "AesCbcDecrypt", onEnterFn: AesCbcDecryptEnter},
   ],
   "libwechatmm.so": [
-     {addr: 0x001e5210, name: "AesGcmEncrypt", onEnterFn: AesGcmEncryptEnter, onLeaveFn: AesGcmEncryptLeave},
-     {addr: 0x001e4c78, name: "AesGcmDecrypt", onEnterFn: AesGcmDecryptEnter},
+     //{addr: 0x001e5210, name: "AesGcmEncrypt", onEnterFn: AesGcmEncryptEnter, onLeaveFn: AesGcmEncryptLeave},
+     //{addr: 0x001e4c78, name: "AesGcmDecrypt", onEnterFn: AesGcmDecryptEnter},
+     {addr: 0x001d7ea4, name: "AesGcmEncrypt", onEnterFn: AesGcmEncryptEnter, onLeaveFn: AesGcmEncryptLeave},
+     {addr: 0x001d780c, name: "AesGcmDecrypt", onEnterFn: AesGcmDecryptEnter},
   ]
 };
 

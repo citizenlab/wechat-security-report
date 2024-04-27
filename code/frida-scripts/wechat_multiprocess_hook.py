@@ -93,15 +93,15 @@ class Application(object):
 
             self._device.resume(process.pid)
             self._sessions.add(session)
-            time.sleep(1)
-            print("✔ create_script() 2")
-            script2 = session.create_script("\n".join(self.push2_hook_scripts))
-            script2.on("message", lambda message, data:
-                self._reactor.schedule(
-                    lambda: self._on_message(process.pid, message)))
-            print("✔ resume(pid={})".format(process.pid))
-            print("✔ load() script 2")
-            script2.load()
+            #time.sleep(1)
+            #print("✔ create_script() 2")
+            #script2 = session.create_script("\n".join(self.push2_hook_scripts))
+            #script2.on("message", lambda message, data:
+            #    self._reactor.schedule(
+            #        lambda: self._on_message(process.pid, message)))
+            #print("✔ resume(pid={})".format(process.pid))
+            #print("✔ load() script 2")
+            #script2.load()
         else:
             print("  Ignoring process "+process.identifier)
 

@@ -15,7 +15,7 @@ Run `adb root`.
 Download Wechat APK compiled form arm64-v8a / armeabi-v7a (assuming wechat.apk) from the official
 [version list](https://weixin.qq.com/cgi-bin/readtemplate?lang=zh_CN&t=weixin_faq_list).
 
-We are looking at version 8022.
+We are looking at version v8.0.49.
 
 ```
 adb install wechat.apk

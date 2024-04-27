@@ -137,6 +137,21 @@ function incrementNonce(nonce: ArrayBuffer) {
     }
 }
 
+const byteToHex: string[] = [];
+
+for (let n = 0; n <= 0xff; ++n)
+{
+      const hexOctet: string = n.toString(16).padStart(2, "0");
+      byteToHex.push(hexOctet);
+}
+
+function hex(arrayBuffer: ArrayBuffer): string
+{
+      return Array.prototype.map.call(
+              new Uint8Array(arrayBuffer),
+              n => byteToHex[n]).join("");
+}
+
 // FUN_002298c8_Crypt(cipher_ctx *ctx,ulong nonce,ulong nonce_len,long input,ulong inputlen,
 //                    ulong input_str,ulong input_str_len,astruct_9 *output)
 function cryptOnEnter(this: InvocationContext, args: InvocationArguments) {
@@ -363,7 +378,8 @@ ${hexdump(this.arg)}`)
 
 
 const TARGET_FUNCS: TargetFunc[] = [
-    target(0x2298c8, "Crypt", 8, cryptOnEnter, cryptOnLeave),
+    //target(0x2298c8, "Crypt", 8, cryptOnEnter, cryptOnLeave),
+    target(0x22ae10, "Crypt", 8, cryptOnEnter, cryptOnLeave),
     ////target(0x219b28, "MMTLS_SendHeartbeat", inspectSendHeartbeat),
     ////target(0x22c324, "ClientChannel_WriteMsgToSendBuffer", inspectWriteMsgToSendBuffer),
     ////target(0x2198c0, "ClientChannel_Send", inspectSend),
