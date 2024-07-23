@@ -1,5 +1,6 @@
 # Outer layer of encryption
 
+
 The outer layer of encryption used by WeChat can be summarized as TLS-like but with **heavy** use of 0-RTT resumption.
 
 Shortlinks always must use 0-RTT resumption by design, since the transport is encoded in a single HTTP POST request and response, and WeChat makes extremely heavy use of Shortlink traffic.
@@ -74,7 +75,20 @@ Since Shortlink connections can only sustain a single round-trip of communicatio
 ## Full key derivation details
 These details were identified by hooking the `HKDFExtract` and `HKDFExpand` functions running in `libwechatnetwork.so` in the `com.tencent.mm:push` process.
 
-The below are the keys resulting from expanding `secret = ECDH(server_pub, client_priv)` via HKDF, and where these particular keys and IVs are used. The text given, like `handshake key expansion`, are used as HKDF labels. Note that the client keypair between Longlink connections and Shortlink connections are different, so they are expanded from a different shared `secret`.
+The below are the keys resulting from expanding `secret = ECDH(server_pub, client_priv)` via HKDF, and where these particular keys and IVs are used. The text given, like `handshake key expansion`, are used as HKDF labels. 
+
+E.g., the following handshake parameters are used to encrypt and decrypt handshake records:
+```
+k_enc, k_dec, iv_enc, iv_dec = HKDF(secret, 56, “handshake key expansion”)
+```
+
+In some cases, derivations can be nested, such as for the longlink data parameters:
+```
+expanded = HKDF(secret, 32, "expanded secret")
+k_enc, k_dec, iv_enc, iv_dec = HKDF(expanded, 56, application data key expansion”)
+```
+
+Note that the client keypair between Longlink connections and Shortlink connections are different, so they are expanded from a different shared `secret`.
 
 Finally, note that the associated `iv` is always incremented by 1 each time the associated `key` is used.
 
