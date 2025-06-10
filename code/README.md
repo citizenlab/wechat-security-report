@@ -3,6 +3,7 @@ This repository contains utility tools for decrypting, testing, and understandin
 ## Collecting keylogs
 
 Follow the setup guide in `frida-scripts/README.md` to run the Frida scripts for exporting keys.
+This will require access to a working Android emulator or rooted Android device.
 
 ## Decrypting keylogs
 
