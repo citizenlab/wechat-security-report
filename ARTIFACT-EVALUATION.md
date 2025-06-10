@@ -30,5 +30,5 @@ file](code/frida-scripts/README.md). You will need to use an emulated Android de
 device.
 
 ### Accessibility (All badges)
-The artifact can be accessed from the [artifact branch]().
+The artifact can be accessed from the [artifact branch](https://github.com/citizenlab/wechat-security-report/tree/artifact).
 
